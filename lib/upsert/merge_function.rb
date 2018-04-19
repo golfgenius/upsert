@@ -10,6 +10,7 @@ class Upsert
     class << self
       def unique_name(table_name, selector_keys, setter_keys)
         parts = [
+          "c#{Apartment::Tenant.current}",
           NAME_PREFIX,
           table_name,
           'SEL',
@@ -24,6 +25,14 @@ class Upsert
         else
           parts
         end
+      end
+      
+      def lookup(controller, row)
+        @lookup ||= {}
+        selector_keys = row.selector.keys
+        setter_keys = row.setter.keys
+        key = [controller.connection.metal.to_s, controller.table_name, selector_keys, setter_keys]
+        @lookup[key] ||= new(controller, selector_keys, setter_keys, controller.assume_function_exists?)
       end
     end
 

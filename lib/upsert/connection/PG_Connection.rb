@@ -15,7 +15,11 @@ class Upsert
       end
 
       def quote_ident(k)
-        metal.quote_ident k.to_s
+        if k.include?(".")
+          metal.quote_ident k.to_s.split(".").last
+        else  
+          metal.quote_ident k.to_s
+        end
       end
 
       def binary(v)
