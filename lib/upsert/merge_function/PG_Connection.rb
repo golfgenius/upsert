@@ -17,9 +17,6 @@ class Upsert
         Upsert.logger.debug do
           %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
         end
-        if sql.present? && sql.include?("$$replace$$")
-          sql = sql.gsub("$$replace$$", Apartment::Tenant.current)
-        end
         begin
           connection.execute sql, values.map { |v| connection.bind_value v }
         rescue PG::Error => pg_error
