@@ -184,7 +184,7 @@ class Upsert
   # @param [Hash] options
   # @option options [TrueClass,FalseClass] :assume_function_exists (false) Assume the function has already been defined correctly by another process.
   def initialize(connection, table_name, options = {})
-    @table_name = table_name.to_s
+    @table_name = table_name.to_s.gsub("$$replace$$", Apartment::Tenant.current)
     metal = Upsert.metal connection
     @flavor = Upsert.flavor metal
     @adapter = Upsert.adapter metal
