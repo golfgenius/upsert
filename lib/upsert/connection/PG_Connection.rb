@@ -5,6 +5,9 @@ class Upsert
       include Postgresql
       
       def execute(sql, params = nil)
+        if sql.include?("$$replace$$")
+          sql = sql.gsub("$$replace$$", "#{Apartment::Tenant.current}")
+        end
         if params
           # Upsert.logger.debug { %{[upsert] #{sql} with #{params.inspect}} }
           metal.exec sql, convert_binary(params)
