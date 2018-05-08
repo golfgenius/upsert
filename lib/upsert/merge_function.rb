@@ -12,7 +12,7 @@ class Upsert
         parts = [
           "$$replace$$.c#{Apartment::Tenant.current}",
           NAME_PREFIX,
-          table_name.split(".").last,
+          table_name,
           'SEL',
           selector_keys.join('_A_'),
           'SET',

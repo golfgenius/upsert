@@ -18,8 +18,8 @@ class Upsert
       end
 
       def quote_ident(k)
-        if k.include?(".")
-          metal.quote_ident k.to_s.split(".").last
+        if k.include?("$$replace$$")
+          metal.quote_ident k.to_s.gsub("$$replace$$", Apartment::Tenant.current)
         else  
           metal.quote_ident k.to_s
         end
