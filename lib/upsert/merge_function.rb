@@ -49,7 +49,8 @@ class Upsert
     end
 
     def name
-      @name ||= self.class.unique_name table_name.gsub("$$replace$$.",""), selector_keys, setter_keys
+      l_table_name = table_name.split(".").last
+      @name ||= self.class.unique_name l_table_name, selector_keys, setter_keys
     end
 
     def connection
