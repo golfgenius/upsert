@@ -12,7 +12,7 @@ class Upsert
           # Upsert.logger.debug { %{[upsert] #{sql} with #{params.inspect}} }
           metal.exec sql, convert_binary(params)
         else
-          Upsert.logger.debug { %{[upsert] #{sql}} }
+          # Upsert.logger.debug { %{[upsert] #{sql}} }
           metal.exec sql
         end
       end
