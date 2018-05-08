@@ -103,7 +103,7 @@ class Upsert
       def create!
         Upsert.logger.info "[upsert] Creating or replacing database function #{name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} on table #{table_name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} for selector #{selector_keys.map(&:inspect).join(', ')} and setter #{setter_keys.map(&:inspect).join(', ')}"
         first_try = true
-        l_quoted_table_name = quoted_table_name.split(".").map{|x| x = "\"#{x}\""}.join(".")
+        l_quoted_table_name = quoted_table_name.split(".").join("\".\"")
         connection.execute(%{
           CREATE OR REPLACE FUNCTION #{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}(#{(selector_column_definitions.map(&:to_selector_arg) + setter_column_definitions.map(&:to_setter_arg) + hstore_delete_handlers.map(&:to_arg)).join(', ')}) RETURNS VOID AS
           $$
@@ -112,7 +112,7 @@ class Upsert
           BEGIN
             LOOP
               -- first try to update the key
-              UPDATE '#{l_quoted_table_name}'::regclass SET #{update_column_definitions.map(&:to_setter).join(', ')}
+              UPDATE #{l_quoted_table_name} SET #{update_column_definitions.map(&:to_setter).join(', ')}
                 WHERE #{selector_column_definitions.map(&:to_selector).join(' AND ') };
               IF found THEN
                 #{hstore_delete_handlers.map(&:to_pgsql).join(' ')}
@@ -122,7 +122,7 @@ class Upsert
               -- if someone else inserts the same key concurrently,
               -- we could get a unique-key failure
               BEGIN
-                INSERT INTO '#{l_quoted_table_name}'::regclass(#{setter_column_definitions.map(&:quoted_name).join(', ')}) VALUES (#{setter_column_definitions.map(&:to_setter_value).join(', ')});
+                INSERT INTO #{l_quoted_table_name}(#{setter_column_definitions.map(&:quoted_name).join(', ')}) VALUES (#{setter_column_definitions.map(&:to_setter_value).join(', ')});
                 #{hstore_delete_handlers.map(&:to_pgsql).join(' ')}
                 RETURN;
               EXCEPTION WHEN unique_violation THEN
