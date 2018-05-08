@@ -57,11 +57,11 @@ class Upsert
     end
 
     def table_name
-      controller.table_name
+      controller.table_name.gsub("$$replace$$", Apartment::Tenant.current)
     end
 
     def quoted_table_name
-      controller.quoted_table_name
+      controller.quoted_table_name.gsub("$$replace$$", Apartment::Tenant.current)
     end
 
     def column_definitions
