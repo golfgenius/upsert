@@ -231,13 +231,11 @@ class Upsert
 
   # @private
   def quoted_table_name
-    l_table_name = table_name.gsub("$$replace$$", Apartment::Tenant.current)
-    @quoted_table_name ||= connection.quote_ident l_table_name
+    @quoted_table_name ||= connection.quote_ident table_name
   end
 
   # @private
   def column_definitions
-    l_table_name = table_name.gsub("$$replace$$", Apartment::Tenant.current)
-    @column_definitions ||= ColumnDefinition.const_get(flavor).all connection, l_table_name
+    @column_definitions ||= ColumnDefinition.const_get(flavor).all connection, table_name
   end
 end
