@@ -10,7 +10,7 @@ class Upsert
     class << self
       def unique_name(table_name, selector_keys, setter_keys)
         parts = [
-          "$$replace$$.c#{Apartment::Tenant.current}",
+          "c#{Apartment::Tenant.current}",
           NAME_PREFIX,
           table_name.split(".").last,
           'SEL',
