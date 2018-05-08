@@ -15,7 +15,10 @@ class Upsert
           values << row.hstore_delete_keys.fetch(hstore_delete_handler.name, [])
         end
         Upsert.logger.debug do
-          %{[upsert]\n\tSelector: #{row.selector.inspect}\n\tSetter: #{row.setter.inspect}}
+          %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
+        end
+        if sql.include?("$$replace$$")
+          sql = sql.gsub("$$replace$$", Apartment::Tenant.current)
         end
         begin
           connection.execute sql, values.map { |v| connection.bind_value v }
