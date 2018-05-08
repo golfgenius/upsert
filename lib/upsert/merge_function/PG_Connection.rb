@@ -17,7 +17,7 @@ class Upsert
         Upsert.logger.debug do
           %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
         end
-        if sql.include?("$$replace$$")
+        if sql.present? && sql.include?("$$replace$$")
           sql = sql.gsub("$$replace$$", Apartment::Tenant.current)
         end
         begin
@@ -52,7 +52,7 @@ class Upsert
             bind_params << "$#{i}::text[]"
             i += 1
           end
-          %{SELECT #{name}(#{bind_params.join(', ')})}
+          %{SELECT #{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}(#{bind_params.join(', ')})}
         end
       end
     end

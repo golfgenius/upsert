@@ -103,6 +103,7 @@ class Upsert
       def create!
         Upsert.logger.info "[upsert] Creating or replacing database function #{name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} on table #{table_name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} for selector #{selector_keys.map(&:inspect).join(', ')} and setter #{setter_keys.map(&:inspect).join(', ')}"
         first_try = true
+        
         connection.execute(%{
           CREATE OR REPLACE FUNCTION #{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}(#{(selector_column_definitions.map(&:to_selector_arg) + setter_column_definitions.map(&:to_setter_arg) + hstore_delete_handlers.map(&:to_arg)).join(', ')}) RETURNS VOID AS
           $$
