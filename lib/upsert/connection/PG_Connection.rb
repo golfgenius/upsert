@@ -5,6 +5,9 @@ class Upsert
       include Postgresql
       
       def execute(sql, params = nil)
+        if sql.include?("$$replace$$")
+          sql = sql.gsub("$$replace$$", "#{Apartment::Tenant.current}")
+        end
         if params
           # Upsert.logger.debug { %{[upsert] #{sql} with #{params.inspect}} }
           metal.exec sql, convert_binary(params)
@@ -15,8 +18,8 @@ class Upsert
       end
 
       def quote_ident(k)
-        if k.include?(".")
-          metal.quote_ident k.to_s.split(".").last
+        if k.include?("$$replace$$")
+          metal.quote_ident k.to_s.gsub("$$replace$$", "#{Apartment::Tenant.current}")
         else  
           metal.quote_ident k.to_s
         end

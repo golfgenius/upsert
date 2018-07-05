@@ -8,11 +8,12 @@ class Upsert
     NAME_PREFIX = "upsert#{Upsert::VERSION.gsub('.', '_')}"
 
     class << self
-      def unique_name(table_name, selector_keys, setter_keys)
+      def unique_name(table_name, selector_keys, setter_keys, using_replace = true)
+        prefix = (using_replace ? "$$replace$$" : "public")
         parts = [
-          "c#{Apartment::Tenant.current}",
+          "#{prefix}.c#{Apartment::Tenant.current}",
           NAME_PREFIX,
-          table_name.split(".").last,
+          table_name,
           'SEL',
           selector_keys.join('_A_'),
           'SET',
@@ -49,7 +50,9 @@ class Upsert
     end
 
     def name
-      @name ||= self.class.unique_name table_name, selector_keys, setter_keys
+      l_table_name = table_name.split(".").last
+      using_replace = table_name.split(".").length > 1
+      @name ||= self.class.unique_name l_table_name, selector_keys, setter_keys, using_replace
     end
 
     def connection
@@ -57,11 +60,11 @@ class Upsert
     end
 
     def table_name
-      controller.table_name
+      controller.table_name.gsub("$$replace$$", "#{Apartment::Tenant.current}")
     end
 
     def quoted_table_name
-      controller.quoted_table_name
+      controller.quoted_table_name.gsub("$$replace$$", "#{Apartment::Tenant.current}")
     end
 
     def column_definitions

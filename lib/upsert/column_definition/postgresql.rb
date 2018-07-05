@@ -5,11 +5,12 @@ class Upsert
       class << self
         # activerecord-3.2.5/lib/active_record/connection_adapters/postgresql_adapter.rb#column_definitions
         def all(connection, table_name)
+          l_table_name = table_name.gsub("$$replace$$.", "")
           res = connection.execute <<-EOS
 SELECT a.attname AS name, format_type(a.atttypid, a.atttypmod) AS sql_type, d.adsrc AS default
 FROM pg_attribute a LEFT JOIN pg_attrdef d
   ON a.attrelid = d.adrelid AND a.attnum = d.adnum
-WHERE a.attrelid = '#{connection.quote_ident(table_name)}'::regclass
+WHERE a.attrelid = '#{connection.quote_ident(l_table_name)}'::regclass
 AND a.attnum > 0 AND NOT a.attisdropped
 EOS
           res.map do |row|
