@@ -50,6 +50,7 @@ class Upsert
       end
 
       def execute(row)
+        binding.pry
         use_pg_native? ? pg_native(row) : pg_function(row)
       end
 
