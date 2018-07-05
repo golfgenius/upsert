@@ -14,11 +14,12 @@ class Upsert
     # What logger to use.
     # @return [#info,#warn,#debug]
     attr_writer :logger
-    
+    MUTEX_FOR_PERFORM = Mutex.new
+
     # The current logger
     # @return [#info,#warn,#debug]
     def logger
-      @logger || Thread.exclusive do
+      @logger || MUTEX_FOR_PERFORM.synchronize do
         @logger ||= if defined?(::Rails) and (rails_logger = ::Rails.logger)
           rails_logger
         elsif defined?(::ActiveRecord) and ::ActiveRecord.const_defined?(:Base) and (ar_logger = ::ActiveRecord::Base.logger)
@@ -182,7 +183,7 @@ class Upsert
   # @param [Mysql2::Client,Sqlite3::Database,PG::Connection,#metal] connection A supported database connection.
   # @param [String,Symbol] table_name The name of the table into which you will be upserting.
   # @param [Hash] options
-  # @option options [TrueClass,FalseClass] :assume_function_exists (false) Assume the function has already been defined correctly by another process.
+  # @option options [TrueClass,FalseClass] :assume_function_exists (true) Assume the function has already been defined correctly by another process.
   def initialize(connection, table_name, options = {})
     @table_name = table_name.to_s
     metal = Upsert.metal connection
@@ -195,7 +196,10 @@ class Upsert
     @connection = Connection.const_get(adapter).new self, metal
     @merge_function_class = MergeFunction.const_get adapter
     @merge_function_cache = {}
-    @assume_function_exists = options.fetch :assume_function_exists, false
+    @assume_function_exists = options.fetch :assume_function_exists, true
+
+    @merge_function_mutex = Mutex.new
+    @row_mutex = Mutex.new
   end
 
   # Upsert a row given a selector and a setter.
@@ -214,19 +218,24 @@ class Upsert
   #   upsert.row({:name => 'Jerry'}, :breed => 'beagle')
   #   upsert.row({:name => 'Pierre'}, :breed => 'tabby')
   def row(selector, setter = {}, options = nil)
-    row_object = Row.new(selector, setter, options)
-    merge_function(row_object).execute(row_object)
-    nil
+    @row_mutex.synchronize do
+      row_object = Row.new(selector, setter, options)
+      merge_function(row_object).execute(row_object)
+      nil
+    end
   end
 
   # @private
   def clear_database_functions
     merge_function_class.clear connection
   end
-  
+
   def merge_function(row)
     cache_key = [row.selector.keys, row.setter.keys]
-    @merge_function_cache[cache_key] ||= merge_function_class.new(self, row.selector.keys, row.setter.keys, assume_function_exists?)
+    @merge_function_mutex.synchronize do
+      @merge_function_cache[cache_key] ||=
+        merge_function_class.new(self, row.selector.keys, row.setter.keys, assume_function_exists?)
+    end
   end
 
   # @private
