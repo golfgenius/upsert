@@ -50,8 +50,11 @@ class Upsert
       end
 
       def execute(row)
-        binding.pry
-        use_pg_native? ? pg_native(row) : pg_function(row)
+        # binding.pry
+        # use_pg_native? ? pg_native(row) : pg_function(row)
+        use_pg_native?
+        pg_native(row)
+        # pg_function(row)
       end
 
       def pg_function(row)
@@ -64,10 +67,13 @@ class Upsert
         Upsert.logger.debug do
           %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
         end
-
+        # binding.pry
         first_try = true
         begin
-          create! if connection.in_transaction? && !function_exists?
+          binding.pry
+          # create! if connection.in_transaction? && !function_exists?
+          create! if !function_exists?
+          # binding.pry
           execute_parameterized(sql, values.map { |v| connection.bind_value v })
         rescue self.class::ERROR_CLASS => pg_error
           if pg_error.message =~ /function #{name}.* does not exist/i
@@ -87,7 +93,7 @@ class Upsert
 
       def function_exists?
         # The ::int is a hack until jruby+jdbc is happy with bigints being returned
-        @function_exists ||= controller.connection.execute("SELECT count(*)::int AS cnt FROM pg_proc WHERE lower(proname) = lower('#{name}')").first["cnt"].to_i > 0
+        @function_exists ||= controller.connection.execute("SELECT count(*)::int AS cnt FROM pg_proc WHERE lower(proname) = lower('#{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}')").first["cnt"].to_i > 0
       end
 
       # strangely ? can't be used as a placeholder
@@ -132,12 +138,12 @@ class Upsert
         bind_setter_values = row.setter.values.map { |v| connection.bind_value v }
 
         upsert_sql = %{
-          INSERT INTO #{quoted_table_name} (#{quoted_setter_names.join(',')})
+          INSERT INTO #{glg_table_name} (#{quoted_setter_names.join(',')})
           VALUES (#{insert_bind_placeholders(row).join(', ')})
           ON CONFLICT(#{quoted_selector_names.join(', ')})
           DO UPDATE SET (#{quoted_setter_names.join(', ')}) = (#{conflict_bind_placeholders(row).join(', ')})
         }
-
+        binding.pry
         execute_parameterized(upsert_sql, bind_setter_values)
       end
 
@@ -256,7 +262,7 @@ class Upsert
       def create!
         Upsert.logger.info "[upsert] Creating or replacing database function #{name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} on table #{table_name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} for selector #{selector_keys.map(&:inspect).join(', ')} and setter #{setter_keys.map(&:inspect).join(', ')}"
         first_try = true
-        l_quoted_table_name = quoted_table_name.split(".").join("\".\"")
+        l_quoted_table_name = glg_table_name
         connection.execute(%{
           CREATE OR REPLACE FUNCTION #{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}(#{(selector_column_definitions.map(&:to_selector_arg) + setter_column_definitions.map(&:to_setter_arg) + hstore_delete_handlers.map(&:to_arg)).join(', ')}) RETURNS VOID AS
           $$

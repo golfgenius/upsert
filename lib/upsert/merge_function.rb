@@ -55,6 +55,10 @@ class Upsert
       @name ||= self.class.unique_name l_table_name, selector_keys, setter_keys, using_replace
     end
 
+    def glg_table_name
+      table_name.split(".").map { |token| "\"#{ token }\"" }.join(".")
+    end
+
     def connection
       controller.connection
     end
