@@ -58,6 +58,7 @@ class Upsert
     #
     # @param [Mysql2::Client,Sqlite3::Database,PG::Connection,#metal] connection A supported database connection.
     # @param [String,Symbol] table_name The name of the table into which you will be upserting.
+    # @param [Hash] options
     #
     # @yield [Upsert] An +Upsert+ object in batch mode. You can call #row on it multiple times and it will try to optimize on speed.
     #
@@ -197,6 +198,7 @@ class Upsert
     @merge_function_class = MergeFunction.const_get adapter
     @merge_function_cache = {}
     @assume_function_exists = options.fetch :assume_function_exists, true
+    @use_native = options.fetch :use_native, false
 
     @merge_function_mutex = Mutex.new
     @row_mutex = Mutex.new
@@ -220,7 +222,7 @@ class Upsert
   def row(selector, setter = {}, options = nil)
     @row_mutex.synchronize do
       row_object = Row.new(selector, setter, options)
-      merge_function(row_object).execute(row_object)
+      merge_function(row_object).execute(row_object, @use_native)
       nil
     end
   end

@@ -49,12 +49,8 @@ class Upsert
         @quoted_selector_names = selector_keys.map { |k| connection.quote_ident k }
       end
 
-      def execute(row)
-        # binding.pry
-        # use_pg_native? ? pg_native(row) : pg_function(row)
-        use_pg_native?
-        pg_native(row)
-        # pg_function(row)
+      def execute(row, use_native = false)
+        use_native ? pg_native(row) : pg_function(row)
       end
 
       def pg_function(row)
@@ -67,13 +63,9 @@ class Upsert
         Upsert.logger.debug do
           %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
         end
-        # binding.pry
         first_try = true
         begin
-          binding.pry
-          # create! if connection.in_transaction? && !function_exists?
           create! if !function_exists?
-          # binding.pry
           execute_parameterized(sql, values.map { |v| connection.bind_value v })
         rescue self.class::ERROR_CLASS => pg_error
           if pg_error.message =~ /function #{name}.* does not exist/i
@@ -93,7 +85,7 @@ class Upsert
 
       def function_exists?
         # The ::int is a hack until jruby+jdbc is happy with bigints being returned
-        @function_exists ||= controller.connection.execute("SELECT count(*)::int AS cnt FROM pg_proc WHERE lower(proname) = lower('#{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}')").first["cnt"].to_i > 0
+        @function_exists ||= controller.connection.execute("SELECT count(*)::int AS cnt FROM pg_proc WHERE lower(proname) = lower('#{name.gsub("$$replace$$.", "")}')").first["cnt"].to_i > 0
       end
 
       # strangely ? can't be used as a placeholder
@@ -143,7 +135,6 @@ class Upsert
           ON CONFLICT(#{quoted_selector_names.join(', ')})
           DO UPDATE SET (#{quoted_setter_names.join(', ')}) = (#{conflict_bind_placeholders(row).join(', ')})
         }
-        binding.pry
         execute_parameterized(upsert_sql, bind_setter_values)
       end
 
