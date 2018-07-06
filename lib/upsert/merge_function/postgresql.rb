@@ -153,48 +153,49 @@ class Upsert
       end
 
       def insert_bind_placeholders(row)
-        if row.hstore_delete_keys.empty?
-          @insert_bind_placeholders ||= setter_column_definitions.each_with_index.map do |column_definition, i|
+        row.setter
+        # if row.hstore_delete_keys.empty?
+          @insert_bind_placeholders ||= row.setter.size.times.map do |i|
             "$#{i + 1}"
           end
-        else
-          setter_column_definitions.each_with_index.map do |column_definition, i|
-            idx = i + 1
-            if column_definition.hstore?
-              hstore_delete_function("$#{idx}", row, column_definition)
-            else
-              "$#{idx}"
-            end
-          end
-        end
+        # else
+        #   setter_column_definitions.each_with_index.map do |column_definition, i|
+        #     idx = i + 1
+        #     if column_definition.hstore?
+        #       hstore_delete_function("$#{idx}", row, column_definition)
+        #     else
+        #       "$#{idx}"
+        #     end
+        #   end
+        # end
       end
 
       def conflict_bind_placeholders(row)
-        if row.hstore_delete_keys.empty?
-          @conflict_bind_placeholders ||= setter_column_definitions.each_with_index.map do |column_definition, i|
+        # if row.hstore_delete_keys.empty?
+          @conflict_bind_placeholders ||= row.setter.size.times.map do |i|
             idx = i + 1
-            if column_definition.hstore?
-              "CASE WHEN #{quoted_table_name}.#{column_definition.quoted_name} IS NULL THEN $#{idx} ELSE" \
-                + " (#{quoted_table_name}.#{column_definition.quoted_name} || $#{idx})" \
-                + " END"
-            else
+            # if column_definition.hstore?
+            #   "CASE WHEN #{quoted_table_name}.#{column_definition.quoted_name} IS NULL THEN $#{idx} ELSE" \
+            #     + " (#{quoted_table_name}.#{column_definition.quoted_name} || $#{idx})" \
+            #     + " END"
+            # else
               "$#{idx}"
-            end
+            # end
           end
-        else
-          setter_column_definitions.each_with_index.map do |column_definition, i|
-            idx = i + 1
-            if column_definition.hstore?
-              "CASE WHEN #{quoted_table_name}.#{column_definition.quoted_name} IS NULL THEN " \
-                + hstore_delete_function("$#{idx}", row, column_definition) \
-                + " ELSE " \
-                + hstore_delete_function("(#{quoted_table_name}.#{column_definition.quoted_name} || $#{idx})", row, column_definition) \
-                + " END"
-            else
-              "$#{idx}"
-            end
-          end
-        end
+        # else
+        #   setter_column_definitions.each_with_index.map do |column_definition, i|
+        #     idx = i + 1
+        #     if column_definition.hstore?
+        #       "CASE WHEN #{quoted_table_name}.#{column_definition.quoted_name} IS NULL THEN " \
+        #         + hstore_delete_function("$#{idx}", row, column_definition) \
+        #         + " ELSE " \
+        #         + hstore_delete_function("(#{quoted_table_name}.#{column_definition.quoted_name} || $#{idx})", row, column_definition) \
+        #         + " END"
+        #     else
+        #       "$#{idx}"
+        #     end
+        #   end
+        # end
       end
 
       class HstoreDeleteHandler

@@ -45,7 +45,8 @@ class Upsert
       @controller = controller
       @selector_keys = selector_keys
       @setter_keys = setter_keys
-      validate!
+      # We take our fate in our own hands
+      # validate!
       create! unless assume_function_exists
     end
 
