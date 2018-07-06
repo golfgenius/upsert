@@ -219,7 +219,13 @@ class Upsert
   #   upsert = Upsert.new Pet.connection, Pet.table_name
   #   upsert.row({:name => 'Jerry'}, :breed => 'beagle')
   #   upsert.row({:name => 'Pierre'}, :breed => 'tabby')
-  def row(selector, setter = {}, options = nil)
+  def row(selector, setter = {}, options = nil, object = nil)
+    if @use_native && object.present?
+      setter.merge!({
+        created_at: object.created_at,
+        updated_at: object.updated_at
+      })
+    end
     @row_mutex.synchronize do
       row_object = Row.new(selector, setter, options)
       merge_function(row_object).execute(row_object, @use_native)
