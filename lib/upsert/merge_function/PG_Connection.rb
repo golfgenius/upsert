@@ -8,7 +8,6 @@ class Upsert
       include Postgresql
 
       def execute_parameterized(query, args = [])
-        Upsert.logger.debug { %{[upsert] #{query} #{args}} }
         controller.connection.execute(query, args)
       end
 
