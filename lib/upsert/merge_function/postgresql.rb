@@ -42,11 +42,13 @@ class Upsert
 
       attr_reader :quoted_setter_names
       attr_reader :quoted_selector_names
+      attr_reader :update_quoted_setter_names
 
       def initialize(controller, *args)
         super
         @quoted_setter_names = setter_keys.map { |k| connection.quote_ident k }
         @quoted_selector_names = selector_keys.map { |k| connection.quote_ident k }
+        @update_quoted_setter_names = @quoted_setter_names.reject { |name| name.include?("created_at") }
       end
 
       def execute(row, use_native = false)
@@ -128,12 +130,13 @@ class Upsert
 
       def pg_native(row)
         bind_setter_values = row.setter.values.map { |v| connection.bind_value v }
+        created_at_index = quoted_setter_names.index { |name| name.include?("created_at") }
 
         upsert_sql = %{
           INSERT INTO #{glg_table_name} (#{quoted_setter_names.join(',')})
           VALUES (#{insert_bind_placeholders(row).join(', ')})
           ON CONFLICT(#{quoted_selector_names.join(', ')})
-          DO UPDATE SET (#{quoted_setter_names.join(', ')}) = (#{conflict_bind_placeholders(row).join(', ')})
+          DO UPDATE SET (#{update_quoted_setter_names.join(', ')}) = (#{conflict_bind_placeholders(row, created_at_index).join(', ')})
         }
         execute_parameterized(upsert_sql, bind_setter_values)
       end
@@ -170,18 +173,23 @@ class Upsert
         # end
       end
 
-      def conflict_bind_placeholders(row)
+      def conflict_bind_placeholders(row, exception_index)
         # if row.hstore_delete_keys.empty?
-          @conflict_bind_placeholders ||= row.setter.size.times.map do |i|
-            idx = i + 1
-            # if column_definition.hstore?
-            #   "CASE WHEN #{quoted_table_name}.#{column_definition.quoted_name} IS NULL THEN $#{idx} ELSE" \
-            #     + " (#{quoted_table_name}.#{column_definition.quoted_name} || $#{idx})" \
-            #     + " END"
-            # else
-              "$#{idx}"
-            # end
+          if @conflict_bind_placeholders.blank?
+            indexes = row.setter.size.times.to_a
+            indexes.slice!(exception_index) if exception_index.present?
+            @conflict_bind_placeholders = indexes.map do |i|
+              idx = i + 1
+              # if column_definition.hstore?
+              #   "CASE WHEN #{quoted_table_name}.#{column_definition.quoted_name} IS NULL THEN $#{idx} ELSE" \
+              #     + " (#{quoted_table_name}.#{column_definition.quoted_name} || $#{idx})" \
+              #     + " END"
+              # else
+                "$#{idx}"
+              # end
+            end
           end
+          @conflict_bind_placeholders
         # else
         #   setter_column_definitions.each_with_index.map do |column_definition, i|
         #     idx = i + 1
