@@ -51,7 +51,7 @@ class Upsert
         @update_quoted_setter_names = @quoted_setter_names.reject { |name| name.include?("created_at") }
       end
 
-      def execute(row, use_native = false)
+      def execute(row, use_native = true)
         use_native ? pg_native(row) : pg_function(row)
       end
 

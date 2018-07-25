@@ -198,7 +198,7 @@ class Upsert
     @merge_function_class = MergeFunction.const_get adapter
     @merge_function_cache = {}
     @assume_function_exists = options.fetch :assume_function_exists, true
-    @use_native = options.fetch :use_native, false
+    @use_native = options.fetch :use_native, true
 
     @merge_function_mutex = Mutex.new
     @row_mutex = Mutex.new
