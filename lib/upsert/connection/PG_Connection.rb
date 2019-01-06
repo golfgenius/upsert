@@ -6,7 +6,7 @@ class Upsert
 
       def execute(sql, params = nil)
         if sql.include?("$$replace$$")
-          sql = sql.gsub("$$replace$$", "#{Apartment::Tenant.current}")
+          sql = sql.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")
         end
         if params
           # Upsert.logger.debug { %{[upsert] #{sql} with #{params.inspect}} }
@@ -22,7 +22,7 @@ class Upsert
 
       def quote_ident(k)
         if k.include?("$$replace$$")
-          metal.quote_ident k.to_s.gsub("$$replace$$", "#{Apartment::Tenant.current}")
+          metal.quote_ident k.to_s.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")
         else  
           metal.quote_ident k.to_s
         end

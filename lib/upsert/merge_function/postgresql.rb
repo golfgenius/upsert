@@ -34,7 +34,7 @@ class Upsert
           connection.execute(%{SELECT proname FROM pg_proc WHERE proname LIKE '#{MergeFunction::NAME_PREFIX}%'}).each do |row|
             k = row['proname']
             next if k == 'upsert_delfunc'
-            Upsert.logger.info %{[upsert] Dropping function #{k.inspect.gsub("$$replace$$", Apartment::Tenant.current)}}
+            Upsert.logger.info %{[upsert] Dropping function #{k.inspect.gsub("$$replace$$", Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current)}}
             connection.execute %{SELECT pg_temp.upsert_delfunc('#{k}')}
           end
         end
@@ -63,7 +63,7 @@ class Upsert
           values << row.hstore_delete_keys.fetch(hstore_delete_handler.name, [])
         end
         Upsert.logger.debug do
-          %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
+          %{[upsert]\n\tSelector: #{row.selector.inspect.gsub("$$replace$$", Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current)}\n\tSetter: #{row.setter.inspect}}
         end
         first_try = true
         begin
@@ -103,7 +103,7 @@ class Upsert
             bind_params << "$#{i}::text[]"
             i += 1
           end
-          %{SELECT #{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}(#{bind_params.join(', ')})}
+          %{SELECT #{name.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")}(#{bind_params.join(', ')})}
         end
       end
 
@@ -260,11 +260,11 @@ class Upsert
       # the "canonical example" from http://www.postgresql.org/docs/9.1/static/plpgsql-control-structures.html#PLPGSQL-UPSERT-EXAMPLE
       # differentiate between selector and setter
       def create!
-        Upsert.logger.info "[upsert] Creating or replacing database function #{name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} on table #{table_name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current}")} for selector #{selector_keys.map(&:inspect).join(', ')} and setter #{setter_keys.map(&:inspect).join(', ')}"
+        Upsert.logger.info "[upsert] Creating or replacing database function #{name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")} on table #{table_name.inspect.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")} for selector #{selector_keys.map(&:inspect).join(', ')} and setter #{setter_keys.map(&:inspect).join(', ')}"
         first_try = true
         l_quoted_table_name = glg_table_name
         connection.execute(%{
-          CREATE OR REPLACE FUNCTION #{name.gsub("$$replace$$", "#{Apartment::Tenant.current}")}(#{(selector_column_definitions.map(&:to_selector_arg) + setter_column_definitions.map(&:to_setter_arg) + hstore_delete_handlers.map(&:to_arg)).join(', ')}) RETURNS VOID AS
+          CREATE OR REPLACE FUNCTION #{name.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")}(#{(selector_column_definitions.map(&:to_selector_arg) + setter_column_definitions.map(&:to_setter_arg) + hstore_delete_handlers.map(&:to_arg)).join(', ')}) RETURNS VOID AS
           $$
           DECLARE
             first_try INTEGER := 1;

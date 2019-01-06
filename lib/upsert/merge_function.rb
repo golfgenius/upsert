@@ -11,7 +11,7 @@ class Upsert
       def unique_name(table_name, selector_keys, setter_keys, using_replace = true)
         prefix = (using_replace ? "$$replace$$" : "public")
         parts = [
-          "#{prefix}.c#{Apartment::Tenant.current}",
+          "#{prefix}.c#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}",
           NAME_PREFIX,
           table_name,
           'SEL',
@@ -65,11 +65,11 @@ class Upsert
     end
 
     def table_name
-      controller.table_name.gsub("$$replace$$", "#{Apartment::Tenant.current}")
+      controller.table_name.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")
     end
 
     def quoted_table_name
-      controller.quoted_table_name.gsub("$$replace$$", "#{Apartment::Tenant.current}")
+      controller.quoted_table_name.gsub("$$replace$$", "#{Apartment::Tenant.current == 'c1' ? 'public' : Apartment::Tenant.current}")
     end
 
     def column_definitions
