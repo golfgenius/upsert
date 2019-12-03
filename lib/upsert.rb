@@ -223,7 +223,7 @@ class Upsert
     if @use_native && object.present?
       setter.merge!({
         created_at: object.created_at,
-        updated_at: object.updated_at
+        updated_at: setter[:updated_at] || object.updated_at
       })
     end
     @row_mutex.synchronize do
