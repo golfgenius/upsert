@@ -1,3 +1,4 @@
+require_relative "postgresql"
 class Upsert
   class Connection
     # @private
